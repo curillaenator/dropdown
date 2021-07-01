@@ -15,6 +15,7 @@ const HeaderStyled = styled.header`
     line-height: 140px;
     letter-spacing: 0.25px;
     color: ${colors.fontBlack};
+    user-select: none;
   }
 `;
 

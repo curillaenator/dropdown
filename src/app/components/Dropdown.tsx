@@ -10,11 +10,15 @@ import type { IItem } from "../App";
 // styles
 interface IDropdownTitle {
   open: boolean;
+  disabled: boolean;
 }
+
 interface IDropdownList {
-  maxWidth: string;
+  maxWidth: string | undefined;
 }
+
 interface IDropdownListItem {
+  checked: boolean;
   look: string;
 }
 
@@ -23,16 +27,21 @@ interface Action {
   type: string;
   payload: any;
 }
+
 interface TState {
   list: IItem[];
   open: boolean;
 }
+
 type TAction<T> = (payload: T) => { type: string; payload: T };
 
 // components
 interface IDropdown {
   data: IItem[];
+  title: string;
   maxWidth?: string;
+  disabled?: boolean;
+  doSomeAjaxOnChange: (updList: IItem[]) => void;
 }
 
 // CSS STYLES
@@ -45,60 +54,97 @@ const DropdownTitle = styled.div<IDropdownTitle>`
   min-width: 294px;
   height: 40px;
   padding: 0 20px;
-  background-color: ${({ open }) =>
-    open ? colors.backBlueDark : colors.backWhite};
   border-radius: 20px;
   transition: 0.08s linear;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? "default" : "pointer")};
+  background-color: ${({ open, disabled }) => {
+    switch (true) {
+      case disabled:
+        return colors.backDisabled;
+      case open:
+        return colors.backBlueDark;
+      default:
+        return colors.backWhite;
+    }
+  }};
 
   & > span {
     font-style: normal;
     font-weight: 400;
     font-size: 15px;
     line-height: 18px;
-    color: ${({ open }) => (open ? colors.fontWhite : colors.fontDark)};
     user-select: none;
+    color: ${({ open, disabled }) => {
+      switch (true) {
+        case disabled:
+          return colors.fontDisabled;
+        case open:
+          return colors.fontWhite;
+        default:
+          return colors.fontDark;
+      }
+    }};
   }
 
   & > svg {
-    fill: ${({ open }) => (open ? colors.fontWhite : colors.fontDark)};
+    margin-left: 16px;
     transition: 0.08s linear;
     transform: rotate(${({ open }) => (open ? "180deg" : "0")});
+    fill: ${({ open, disabled }) => {
+      switch (true) {
+        case disabled:
+          return colors.fontDisabled;
+        case open:
+          return colors.fontWhite;
+        default:
+          return colors.fontDark;
+      }
+    }};
   }
 
   &:hover {
-    background-color: ${colors.backBlue};
+    background-color: ${({ disabled }) =>
+      disabled ? colors.backDisabled : colors.backBlue};
 
     & > span {
-      color: ${colors.fontWhite};
+      color: ${({ disabled }) =>
+        disabled ? colors.fontDisabled : colors.fontWhite};
     }
 
     & > svg {
-      fill: ${colors.fontWhite};
+      fill: ${({ disabled }) =>
+        disabled ? colors.fontDisabled : colors.fontWhite};
     }
   }
 
   &:active {
-    background-color: ${colors.backBlueDark};
+    background-color: ${({ disabled }) =>
+      disabled ? colors.backDisabled : colors.backBlueDark};
 
     & > span {
-      color: ${colors.fontWhite};
+      color: ${({ disabled }) =>
+        disabled ? colors.fontDisabled : colors.fontWhite};
     }
 
     & > svg {
-      fill: ${colors.fontWhite};
+      fill: ${({ disabled }) =>
+        disabled ? colors.fontDisabled : colors.fontWhite};
     }
   }
 `;
+
 const DropdownList = styled.div<IDropdownList>`
   position: absolute;
   top: calc(40px + 16px);
-  right: 0;
-  width: fit-content;
-  max-width: ${({ maxWidth }) => (maxWidth ? maxWidth : "unset")};
+  right: 50%;
+  width: ${({ maxWidth }) => (maxWidth ? maxWidth : "fit-content")};
   border-radius: 8px;
+  background-color: ${colors.backWhite};
+  transform: translateX(50%);
+  overflow: hidden;
   box-shadow: 0px 19px 38px rgba(33, 38, 44, 0.15),
     0px 15px 12px rgba(33, 38, 44, 0.11);
+  z-index: 10;
 
   .listgroup {
     &_title {
@@ -128,6 +174,7 @@ const DropdownList = styled.div<IDropdownList>`
     }
   }
 `;
+
 const DropdownListItem = styled.button<IDropdownListItem>`
   display: flex;
   justify-content: space-between;
@@ -135,10 +182,20 @@ const DropdownListItem = styled.button<IDropdownListItem>`
   width: 100%;
   min-height: 36px;
   padding: 9px 16px;
-  background-color: ${({ look }) =>
-    look === "disabled" ? colors.backDisabled : "tranparent"};
   transition: 0.08s linear;
   cursor: ${({ look }) => (look === "disabled" ? "default" : "pointer")};
+  background-color: ${({ look, checked }) => {
+    switch (true) {
+      case look === "disabled":
+        return colors.backDisabled;
+
+      case checked:
+        return colors.backChecked;
+
+      default:
+        return "tranparent";
+    }
+  }};
 
   & > span {
     width: calc(100% - 24px);
@@ -164,6 +221,8 @@ const DropdownListItem = styled.button<IDropdownListItem>`
   & > svg {
     flex-shrink: 0;
     margin: 0 3px 0 7px;
+    opacity: ${({ checked }) => (checked ? "1" : "0")};
+    transition: 0.08s linear;
     fill: ${({ look }) => {
       switch (look) {
         case "danger":
@@ -232,12 +291,12 @@ const DropdownListItem = styled.button<IDropdownListItem>`
     }};
   }
 `;
+
 const DropdownStyled = styled.div`
   position: relative;
-  width: fit-content;
 `;
 
-// STATE
+// STATE MANAGEMENT
 
 const SET_OPEN = "dropdown/SET_OPEN";
 const SET_LIST = "dropdown/SET_LIST";
@@ -285,15 +344,26 @@ const icons = {
   ),
 };
 
-// COMPONENT
+// JSX COMPONENT
 
-export const Dropdown: FC<IDropdown> = ({ data, maxWidth = "340px" }) => {
+export const Dropdown: FC<IDropdown> = ({
+  data,
+  title,
+  maxWidth,
+  disabled = false,
+  doSomeAjaxOnChange,
+}) => {
   useEffect(() => dispatch(setList(data)), [data]);
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const { list, open } = state;
 
-  const groups = [...new Set(list?.map((item) => item.group))];
+  const groups = [...new Set(list.map((item) => item.group))];
+
+  const handleOpen = () => {
+    if (disabled) return;
+    dispatch(setOpen(!open));
+  };
 
   const handleCheck = (item: IItem, index: number): void => {
     if (item.type === "disabled") return;
@@ -302,14 +372,15 @@ export const Dropdown: FC<IDropdown> = ({ data, maxWidth = "340px" }) => {
     const updList = [...list];
     updList?.splice(index, 1, updItem);
 
+    doSomeAjaxOnChange(updList);
+
     dispatch(setList(updList));
   };
 
   return (
     <DropdownStyled>
-      <DropdownTitle open={open} onClick={() => dispatch(setOpen(!open))}>
-        <span>Дропдаун</span>
-
+      <DropdownTitle open={open} disabled={disabled} onClick={handleOpen}>
+        <span>{title}</span>
         {icons.arrow}
       </DropdownTitle>
 
@@ -324,11 +395,12 @@ export const Dropdown: FC<IDropdown> = ({ data, maxWidth = "340px" }) => {
                   return (
                     <DropdownListItem
                       look={item.type}
+                      checked={item.checked}
                       key={item.id}
                       onClick={() => handleCheck(item, i)}
                     >
                       <span>{item.title}</span>
-                      {item.checked && icons.check}
+                      {icons.check}
                     </DropdownListItem>
                   );
                 }
