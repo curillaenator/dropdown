@@ -353,14 +353,24 @@ export const Dropdown: FC<IDropdown> = ({
   disabled = false,
   doSomeAjaxOnChange,
 }) => {
-  useEffect(() => dispatch(setList(data)), [data]);
+  // тут для простоты кода можно/нужно было использовать простой useState вместо useReducer:
+
+  // const [list, setList] = useState([]),
+  // const [open, setOpen] = useState(false),
+
+  // useReducer был использован для демонстрации работы с Redux-подобным state-менеджментом и его типизацией:
 
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  useEffect(() => dispatch(setList(data)), [data]);
+
   const { list, open } = state;
 
   const groups = [...new Set(list.map((item) => item.group))];
 
-  const handleOpen = () => {
+  // handlers
+
+  const handleOpen = (): void => {
     if (disabled) return;
     dispatch(setOpen(!open));
   };
@@ -372,8 +382,7 @@ export const Dropdown: FC<IDropdown> = ({
     const updList = [...list];
     updList?.splice(index, 1, updItem);
 
-    doSomeAjaxOnChange(updList);
-
+    doSomeAjaxOnChange(updList); // This should be Promise, then
     dispatch(setList(updList));
   };
 
@@ -386,11 +395,11 @@ export const Dropdown: FC<IDropdown> = ({
 
       {open && (
         <DropdownList maxWidth={maxWidth}>
-          {groups?.map((group) => (
+          {groups.map((group) => (
             <div className="listgroup" key={group}>
               <h3 className="listgroup_title">{group}</h3>
 
-              {list?.map((item, i) => {
+              {list.map((item, i) => {
                 if (item.group === group) {
                   return (
                     <DropdownListItem
