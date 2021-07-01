@@ -23,14 +23,14 @@ const fakeData = [
   {
     id: "item1",
     group: "Группа в списке 1",
-    title: "Обычный пункт меню",
+    title: "Обычный пункт",
     type: "normal",
     checked: false,
   },
   {
     id: "item2",
     group: "Группа в списке 1",
-    title: "Обычный пункт меню",
+    title: "Обычный пункт",
     type: "normal",
     checked: true,
   },

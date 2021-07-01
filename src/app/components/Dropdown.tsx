@@ -12,7 +12,6 @@ interface IDropdownTitle {
   open: boolean;
 }
 interface IDropdownList {
-  open: boolean;
   maxWidth: string;
 }
 interface IDropdownListItem {
@@ -91,7 +90,6 @@ const DropdownTitle = styled.div<IDropdownTitle>`
     }
   }
 `;
-
 const DropdownList = styled.div<IDropdownList>`
   position: absolute;
   top: calc(40px + 16px);
@@ -107,7 +105,7 @@ const DropdownList = styled.div<IDropdownList>`
       display: flex;
       align-items: center;
       position: relative;
-      width: fit-content;
+      width: 100%;
       min-height: 36px;
       padding: 12px 16px;
       font-style: normal;
@@ -130,7 +128,6 @@ const DropdownList = styled.div<IDropdownList>`
     }
   }
 `;
-
 const DropdownListItem = styled.button<IDropdownListItem>`
   display: flex;
   justify-content: space-between;
@@ -235,7 +232,6 @@ const DropdownListItem = styled.button<IDropdownListItem>`
     }};
   }
 `;
-
 const DropdownStyled = styled.div`
   position: relative;
   width: fit-content;
@@ -246,10 +242,7 @@ const DropdownStyled = styled.div`
 const SET_OPEN = "dropdown/SET_OPEN";
 const SET_LIST = "dropdown/SET_LIST";
 
-const initialState: TState = {
-  list: [],
-  open: false,
-};
+const initialState: TState = { list: [], open: false };
 
 const reducer: Reducer<TState, Action> = (state, action) => {
   switch (action.type) {
@@ -292,25 +285,22 @@ const icons = {
   ),
 };
 
+// COMPONENT
+
 export const Dropdown: FC<IDropdown> = ({ data, maxWidth = "340px" }) => {
+  useEffect(() => dispatch(setList(data)), [data]);
+
   const [state, dispatch] = useReducer(reducer, initialState);
   const { list, open } = state;
 
   const groups = [...new Set(list?.map((item) => item.group))];
 
-  useEffect(() => dispatch(setList(data)), [data]);
+  const handleCheck = (item: IItem, index: number): void => {
+    if (item.type === "disabled") return;
 
-  const handleCheck = (id: string, prevList: any): void => {
-    const clickedItem: IItem = prevList.find((i: IItem) => i.id === id);
-
-    if (clickedItem.type === "disabled") return;
-
-    const clickedIndex: number = prevList.findIndex((i: IItem) => i.id === id);
-    const updItem = { ...clickedItem, checked: !clickedItem.checked };
-
-    const updList: IItem[] = [...prevList];
-
-    updList?.splice(clickedIndex, 1, updItem);
+    const updItem = { ...item, checked: !item.checked };
+    const updList = [...list];
+    updList?.splice(index, 1, updItem);
 
     dispatch(setList(updList));
   };
@@ -323,30 +313,32 @@ export const Dropdown: FC<IDropdown> = ({ data, maxWidth = "340px" }) => {
         {icons.arrow}
       </DropdownTitle>
 
-      <DropdownList open={open} maxWidth={maxWidth}>
-        {groups?.map((group) => (
-          <div className="listgroup" key={group}>
-            <h3 className="listgroup_title">{group}</h3>
+      {open && (
+        <DropdownList maxWidth={maxWidth}>
+          {groups?.map((group) => (
+            <div className="listgroup" key={group}>
+              <h3 className="listgroup_title">{group}</h3>
 
-            {list?.map((item) => {
-              if (item.group === group) {
-                return (
-                  <DropdownListItem
-                    look={item.type}
-                    key={item.id}
-                    onClick={() => handleCheck(item.id, list)}
-                  >
-                    <span>{item.title}</span>
-                    {item.checked && icons.check}
-                  </DropdownListItem>
-                );
-              }
+              {list?.map((item, i) => {
+                if (item.group === group) {
+                  return (
+                    <DropdownListItem
+                      look={item.type}
+                      key={item.id}
+                      onClick={() => handleCheck(item, i)}
+                    >
+                      <span>{item.title}</span>
+                      {item.checked && icons.check}
+                    </DropdownListItem>
+                  );
+                }
 
-              return null;
-            })}
-          </div>
-        ))}
-      </DropdownList>
+                return null;
+              })}
+            </div>
+          ))}
+        </DropdownList>
+      )}
     </DropdownStyled>
   );
 };
