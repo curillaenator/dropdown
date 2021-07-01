@@ -11,61 +11,65 @@ const AppContainer = styled.div`
   padding: 80px 92px;
 `;
 
-export type TList = typeof dropdownNormal;
+export interface IItem {
+  id: string;
+  group: string;
+  title: string;
+  type: string;
+  checked: boolean;
+}
 
-const dropdownNormal = [
+const fakeData = [
   {
-    title: "Группа в списке 1",
-    content: [
-      { id: "item1", title: "item1", type: "normal" },
-      { id: "item2", title: "item2", type: "normal" },
-      { id: "item3", title: "item3", type: "disabled" },
-    ],
+    id: "item1",
+    group: "Группа в списке 1",
+    title: "Обычный пункт меню",
+    type: "normal",
+    checked: false,
   },
   {
-    title: "Группа в списке 2",
-    content: [
-      { id: "item4", title: "item4", type: "danger" },
-      { id: "item5", title: "item5", type: "danger" },
-      { id: "item6", title: "item6", type: "disabled" },
-    ],
+    id: "item2",
+    group: "Группа в списке 1",
+    title: "Обычный пункт меню",
+    type: "normal",
+    checked: true,
+  },
+  {
+    id: "item3",
+    group: "Группа в списке 1",
+    title: "Выключенный пункт",
+    type: "disabled",
+    checked: true,
+  },
+  {
+    id: "item4",
+    group: "Группа в списке 2",
+    title: "Danger пункт меню",
+    type: "danger",
+    checked: false,
+  },
+  {
+    id: "item5",
+    group: "Группа в списке 2",
+    title: "Danger пункт меню",
+    type: "danger",
+    checked: true,
+  },
+  {
+    id: "item6",
+    group: "Группа в списке 2",
+    title: "Выключенный пункт",
+    type: "disabled",
+    checked: false,
   },
 ];
-
-const dropdownLong = {
-  group1: {
-    title: "Длинное название для группы, которое занимает несколько строк",
-    content: [
-      {
-        title:
-          "Длинное название пункта, которое занимает сразу несколько строк",
-        type: "normal",
-      },
-    ],
-  },
-  group2: {
-    title: "Ещё одна группа",
-    content: [
-      {
-        title:
-          "Длинное название пункта, которое занимает сразу несколько строк",
-        type: "normal",
-      },
-      {
-        title:
-          "Еще более длинное название пункта, которое занимает сразу несколько строк",
-        type: "normal",
-      },
-    ],
-  },
-};
 
 export const App: FC = () => {
   return (
     <AppContainer>
       <SimpleHeader title="Дропдаун" />
 
-      <Dropdown list={dropdownNormal} />
+      <Dropdown data={fakeData} />
     </AppContainer>
   );
 };

@@ -1,9 +1,10 @@
+import { useEffect } from "react";
 import { FC, useReducer, Reducer } from "react";
 import styled from "styled-components";
 
 import { colors } from "../../utils/colors";
 
-import type { TList } from "../App";
+import type { IItem } from "../App";
 
 // TYPES
 // styles
@@ -16,7 +17,6 @@ interface IDropdownList {
 }
 interface IDropdownListItem {
   look: string;
-  selected: boolean;
 }
 
 // state
@@ -24,19 +24,19 @@ interface Action {
   type: string;
   payload: any;
 }
-type TState = {
+interface TState {
+  list: IItem[];
   open: boolean;
-  selected: string | null;
-};
+}
 type TAction<T> = (payload: T) => { type: string; payload: T };
 
 // components
 interface IDropdown {
-  list: TList;
+  data: IItem[];
   maxWidth?: string;
 }
 
-// STYLES
+// CSS STYLES
 
 const DropdownTitle = styled.div<IDropdownTitle>`
   display: flex;
@@ -97,6 +97,7 @@ const DropdownList = styled.div<IDropdownList>`
   top: calc(40px + 16px);
   right: 0;
   width: fit-content;
+  max-width: ${({ maxWidth }) => (maxWidth ? maxWidth : "unset")};
   border-radius: 8px;
   box-shadow: 0px 19px 38px rgba(33, 38, 44, 0.15),
     0px 15px 12px rgba(33, 38, 44, 0.11);
@@ -107,8 +108,8 @@ const DropdownList = styled.div<IDropdownList>`
       align-items: center;
       position: relative;
       width: fit-content;
-      height: 36px;
-      padding: 0 16px;
+      min-height: 36px;
+      padding: 12px 16px;
       font-style: normal;
       font-weight: normal;
       font-size: 13px;
@@ -132,27 +133,107 @@ const DropdownList = styled.div<IDropdownList>`
 
 const DropdownListItem = styled.button<IDropdownListItem>`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  height: 36px;
-  padding: 0 16px;
-  cursor: pointer;
+  width: 100%;
+  min-height: 36px;
+  padding: 9px 16px;
+  background-color: ${({ look }) =>
+    look === "disabled" ? colors.backDisabled : "tranparent"};
+  transition: 0.08s linear;
+  cursor: ${({ look }) => (look === "disabled" ? "default" : "pointer")};
 
-  font-style: normal;
-  font-weight: normal;
-  font-size: 15px;
-  line-height: 18px;
-  color: ${({ look }) => {
-    switch (look) {
-      case "danger":
-        return colors.fontDanger;
+  & > span {
+    width: calc(100% - 24px);
+    text-align: start;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 15px;
+    line-height: 18px;
+    color: ${({ look }) => {
+      switch (look) {
+        case "danger":
+          return colors.fontDanger;
 
-      case "disabled":
-        return colors.fontGray;
+        case "disabled":
+          return colors.fontGray;
 
-      default:
-        return colors.fontDark;
+        default:
+          return colors.fontDark;
+      }
+    }};
+  }
+
+  & > svg {
+    flex-shrink: 0;
+    margin: 0 3px 0 7px;
+    fill: ${({ look }) => {
+      switch (look) {
+        case "danger":
+          return colors.fontDanger;
+
+        case "disabled":
+          return colors.fontGray;
+
+        default:
+          return colors.fontDark;
+      }
+    }};
+  }
+
+  &:hover {
+    background-color: ${({ look }) => {
+      switch (look) {
+        case "danger":
+          return colors.backDanger;
+
+        case "disabled":
+          return colors.backDisabled;
+
+        default:
+          return colors.backBlue;
+      }
+    }};
+
+    & > span {
+      color: ${({ look }) => {
+        switch (look) {
+          case "disabled":
+            return colors.fontGray;
+
+          default:
+            return colors.fontWhite;
+        }
+      }};
     }
-  }};
+
+    & > svg {
+      fill: ${({ look }) => {
+        switch (look) {
+          case "disabled":
+            return colors.fontGray;
+
+          default:
+            return colors.fontWhite;
+        }
+      }};
+    }
+  }
+
+  &:active {
+    background-color: ${({ look }) => {
+      switch (look) {
+        case "danger":
+          return colors.backDangerDark;
+
+        case "disabled":
+          return colors.backDisabled;
+
+        default:
+          return colors.backBlueDark;
+      }
+    }};
+  }
 `;
 
 const DropdownStyled = styled.div`
@@ -163,14 +244,18 @@ const DropdownStyled = styled.div`
 // STATE
 
 const SET_OPEN = "dropdown/SET_OPEN";
+const SET_LIST = "dropdown/SET_LIST";
 
-const initialState = {
+const initialState: TState = {
+  list: [],
   open: false,
-  selected: null,
 };
 
 const reducer: Reducer<TState, Action> = (state, action) => {
   switch (action.type) {
+    case SET_LIST:
+      return { ...state, list: action.payload };
+
     case SET_OPEN:
       return { ...state, open: action.payload };
 
@@ -180,6 +265,7 @@ const reducer: Reducer<TState, Action> = (state, action) => {
 };
 
 const setOpen: TAction<boolean> = (payload) => ({ type: SET_OPEN, payload });
+const setList: TAction<IItem[]> = (payload) => ({ type: SET_LIST, payload });
 
 // UTILS
 
@@ -206,9 +292,28 @@ const icons = {
   ),
 };
 
-export const Dropdown: FC<IDropdown> = ({ list, maxWidth = "340px" }) => {
+export const Dropdown: FC<IDropdown> = ({ data, maxWidth = "340px" }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { open, selected } = state;
+  const { list, open } = state;
+
+  const groups = [...new Set(list?.map((item) => item.group))];
+
+  useEffect(() => dispatch(setList(data)), [data]);
+
+  const handleCheck = (id: string, prevList: any): void => {
+    const clickedItem: IItem = prevList.find((i: IItem) => i.id === id);
+
+    if (clickedItem.type === "disabled") return;
+
+    const clickedIndex: number = prevList.findIndex((i: IItem) => i.id === id);
+    const updItem = { ...clickedItem, checked: !clickedItem.checked };
+
+    const updList: IItem[] = [...prevList];
+
+    updList?.splice(clickedIndex, 1, updItem);
+
+    dispatch(setList(updList));
+  };
 
   return (
     <DropdownStyled>
@@ -219,20 +324,26 @@ export const Dropdown: FC<IDropdown> = ({ list, maxWidth = "340px" }) => {
       </DropdownTitle>
 
       <DropdownList open={open} maxWidth={maxWidth}>
-        {list.map((group) => (
-          <div className="listgroup" key={group.title}>
-            <h3 className="listgroup_title">{group.title}</h3>
+        {groups?.map((group) => (
+          <div className="listgroup" key={group}>
+            <h3 className="listgroup_title">{group}</h3>
 
-            {group.content.map((item) => (
-              <DropdownListItem
-                look={item.type}
-                key={item.id}
-                selected={item.id === selected}
-              >
-                <span>{item.title}</span>
-                {item.id === selected && icons.check}
-              </DropdownListItem>
-            ))}
+            {list?.map((item) => {
+              if (item.group === group) {
+                return (
+                  <DropdownListItem
+                    look={item.type}
+                    key={item.id}
+                    onClick={() => handleCheck(item.id, list)}
+                  >
+                    <span>{item.title}</span>
+                    {item.checked && icons.check}
+                  </DropdownListItem>
+                );
+              }
+
+              return null;
+            })}
           </div>
         ))}
       </DropdownList>
