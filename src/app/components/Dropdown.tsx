@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { FC, useReducer, Reducer } from "react";
+import { FC, useRef, useReducer, Reducer } from "react";
 import styled from "styled-components";
 
 import { colors } from "../../utils/colors";
@@ -353,16 +353,29 @@ export const Dropdown: FC<IDropdown> = ({
   disabled = false,
   doSomeAjaxOnChange,
 }) => {
-  // тут для простоты кода можно/нужно было использовать простой useState вместо useReducer:
-
-  // const [list, setList] = useState([]),
-  // const [open, setOpen] = useState(false),
-
-  // useReducer был использован для демонстрации работы с Redux-подобным state-менеджментом и его типизацией:
+  const ref = useRef(null);
 
   const [state, dispatch] = useReducer(reducer, initialState);
+  // Для state для простоты кода можно/нужно было реализовать простой useState вместо useReducer:
+  // const [list, setList] = useState([]),
+  // const [open, setOpen] = useState(false),
+  // useReducer был использован для демонстрации работы с Redux-подобным state-менеджментом и его типизацией:
 
   useEffect(() => dispatch(setList(data)), [data]);
+
+  // console.log(data);
+
+  useEffect(() => {
+    const handleClose = (e: any) => {
+      // @ts-ignore
+      if (ref.current && !ref.current!.contains(e.target)) {
+        dispatch(setOpen(false));
+      }
+    };
+
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, []);
 
   const { list, open } = state;
 
@@ -387,7 +400,7 @@ export const Dropdown: FC<IDropdown> = ({
   };
 
   return (
-    <DropdownStyled>
+    <DropdownStyled ref={ref}>
       <DropdownTitle open={open} disabled={disabled} onClick={handleOpen}>
         <span>{title}</span>
         {icons.arrow}
